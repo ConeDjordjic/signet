@@ -1,0 +1,30 @@
+# Docker Compose configuration for integration tests
+# Usage: docker compose -f docker-compose.test.yml up -d
+
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: signet-postgres-test
+    environment:
+      POSTGRES_USER: signet_test
+      POSTGRES_PASSWORD: signet_test
+      POSTGRES_DB: signet_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/001_init.sql
+      - ./migrations/002_outbox_events.sql:/docker-entrypoint-initdb.d/002_outbox_events.sql
+      - ./migrations/003_password_reset_tokens.sql:/docker-entrypoint-initdb.d/003_password_reset_tokens.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signet_test -d signet_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    tmpfs:
+      - /var/lib/postgresql/data
+    networks:
+      - signet-test-network
+
+networks:
+  signet-test-network:
+    driver: bridge

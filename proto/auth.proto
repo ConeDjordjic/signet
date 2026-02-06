@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package signet.auth.v1;
+
+service AuthService {
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+  rpc CheckPermissions(CheckPermissionsRequest) returns (CheckPermissionsResponse);
+}
+
+message VerifyTokenRequest {
+  string token = 1;
+}
+
+message VerifyTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string email = 3;
+  optional string project_id = 4;
+  optional string role = 5;
+  int64 expires_at = 6;
+}
+
+message CheckPermissionRequest {
+  string token = 1;
+  string resource = 2;
+  string action = 3;
+}
+
+message CheckPermissionResponse {
+  bool allowed = 1;
+  string user_id = 2;
+  optional string project_id = 3;
+}
+
+message CheckPermissionsRequest {
+  string token = 1;
+  repeated PermissionCheck permissions = 2;
+}
+
+message PermissionCheck {
+  string resource = 1;
+  string action = 2;
+}
+
+message CheckPermissionsResponse {
+  string user_id = 1;
+  optional string project_id = 2;
+  repeated PermissionResult results = 3;
+}
+
+message PermissionResult {
+  string resource = 1;
+  string action = 2;
+  bool allowed = 3;
+}

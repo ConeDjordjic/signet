@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: signet-postgres
+    environment:
+      POSTGRES_USER: signet
+      POSTGRES_PASSWORD: signet_password
+      POSTGRES_DB: signet
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/001_init.sql
+      - ./migrations/002_outbox_events.sql:/docker-entrypoint-initdb.d/002_outbox_events.sql
+      - ./migrations/003_password_reset_tokens.sql:/docker-entrypoint-initdb.d/003_password_reset_tokens.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - signet-network
+
+  signet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: signet-api
+    environment:
+      DATABASE_URL: postgresql://signet:signet_password@postgres:5432/signet
+      # Generate with: cargo run --example generate_keys
+      JWT_PRIVATE_KEY: "${JWT_PRIVATE_KEY:?JWT_PRIVATE_KEY is required}"
+      RUST_LOG: signet=info,tower_http=info
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - signet-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  signet-network:
+    driver: bridge
